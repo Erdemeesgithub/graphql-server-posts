@@ -1,7 +1,6 @@
 import { ApolloServer } from "@apollo/server";
 import { startServerAndCreateNextHandler } from "@as-integrations/next";
 import MongoDBreq from "../utils/db";
-import { log } from "console";
 
 const typeDefs = `#graphql
   type Post{
@@ -9,10 +8,11 @@ const typeDefs = `#graphql
     images: [String]
     userId: String
     createdAt: String
+    _id: ID
   }
   type Query {
     getPosts : [Post]
-    getPostDetail: Post
+    getPostDetail(id: ID!): Post
   }
   input PostInput {
     text: String
@@ -21,7 +21,7 @@ const typeDefs = `#graphql
 
   type Mutation {
    createPost(postCreateInput: PostInput): String,
-   updatePost(id: ID!, postUpdateInput: PostInput): Post,
+   updatePost(id: ID!,  postUpdateInput: PostInput): String,
    deletePost(id: ID!): ID
   }
 `;
@@ -34,7 +34,13 @@ const resolvers = {
 
       return get.documents;
     },
-    getPostDetail: () => {},
+    getPostDetail: async (_: any, args: any) => {
+      const get: any = await MongoDBreq("findOne", {
+        filter: { _id: { $oid: args.id } },
+      });
+      console.log(get.document);
+      return get.document;
+    },
   },
   Mutation: {
     createPost: async (
@@ -51,8 +57,24 @@ const resolvers = {
       console.log({ result });
       return result.insertedId;
     },
-    updatePost: () => {},
-    deletePost: () => {},
+    updatePost: async (_: any, args: any) => {
+      const result = await MongoDBreq("updateOne", {
+        filter: { _id: { $oid: args.id } },
+        update: {
+          $set: {
+            text: args.postUpdateInput.text,
+            images: args.postUpdateInput.images,
+          },
+        },
+      });
+      return result;
+    },
+    deletePost: async (_: any, args: any) => {
+      const result = await MongoDBreq("deleteOne", {
+        filter: { _id: { $oid: args.id } },
+      });
+      return "deleted";
+    },
   },
 };
 const server = new ApolloServer({
