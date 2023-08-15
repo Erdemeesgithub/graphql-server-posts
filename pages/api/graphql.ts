@@ -20,7 +20,7 @@ const typeDefs = `#graphql
   }
 
   type Mutation {
-   createPost(postCreateInput: PostInput): String,
+   createPost(postCreateInput: PostInput!): String,
    updatePost(id: ID!,  postUpdateInput: PostInput): String,
    deletePost(id: ID!): ID
   }
@@ -67,7 +67,7 @@ const resolvers = {
           },
         },
       });
-      return result;
+      return "updated";
     },
     deletePost: async (_: any, args: any) => {
       const result = await MongoDBreq("deleteOne", {
